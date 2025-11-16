@@ -1,40 +1,40 @@
 import streamlit as st
 import requests
+import pandas as pd
 
-BACKEND_URL = "https://backend-finance-mu-three.vercel.app"
+API_URL = "https://backend-finance-vspr.onrender.com"
 
-st.title("💰 Personal Finance Dashboard")
+st.title("💰 Personal Finance Companion")
 
-menu = st.sidebar.selectbox("Menu", ["Home", "Add Expense", "View Expenses"])
+# Expense Input
+st.header("Add Expense")
+amount = st.number_input("Amount", min_value=1)
+category = st.selectbox("Category", ["Food", "Travel", "Shopping", "Bills", "Other"])
+note = st.text_input("Note")
 
-if menu == "Home":
-    st.write("Welcome to your finance dashboard!")
+if st.button("Add Expense"):
+    data = {
+        "amount": amount,
+        "category": category,
+        "note": note
+    }
+    try:
+        r = requests.post(f"{API_URL}/add-expense", json=data)
+        st.success("Expense Added Successfully!")
+    except:
+        st.error("Backend not reachable")
 
-elif menu == "Add Expense":
-    st.header("Add Expense")
+# Dashboard
+st.header("📊 Dashboard")
+try:
+    r = requests.get(f"{API_URL}/expenses")
+    expenses = r.json()
 
-    amount = st.number_input("Amount", min_value=1)
-    category = st.selectbox("Category", ["Food", "Travel", "Bills", "Shopping"])
-    note = st.text_input("Note")
+    df = pd.DataFrame(expenses)
+    st.write(df)
 
-    if st.button("Save Expense"):
-        data = {
-            "amount": amount,
-            "category": category,
-            "note": note
-        }
-        res = requests.post(f"{BACKEND_URL}/expense", json=data)
+    chart_df = df.groupby("category")["amount"].sum()
+    st.bar_chart(chart_df)
 
-        if res.status_code == 200:
-            st.success("Expense saved!")
-        else:
-            st.error("Failed to save expense")
-
-elif menu == "View Expenses":
-    st.header("All Expenses")
-
-    res = requests.get(f"{BACKEND_URL}/expenses")
-    if res.status_code == 200:
-        st.table(res.json())
-    else:
-        st.error("Could not load expenses")
+except:
+    st.warning("Unable to fetch dashboard data")
